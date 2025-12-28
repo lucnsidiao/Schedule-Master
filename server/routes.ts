@@ -127,10 +127,17 @@ export async function registerRoutes(
   app.post(api.appointments.create.path, isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const input = api.appointments.create.input.parse(req.body);
+      const bodySchema = api.appointments.create.input.extend({
+        startAt: z.coerce.date(),
+        endAt: z.coerce.date(),
+      });
+      const input = bodySchema.parse(req.body);
       const appt = await storage.createAppointment({ ...input, businessId: user.businessId });
       res.status(201).json(appt);
     } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
+      }
       if (err.message === "Business owner is absent during this time." || err.message === "Time slot already booked.") {
         return res.status(409).json({ message: err.message });
       }

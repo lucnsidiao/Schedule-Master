@@ -2,6 +2,7 @@ import { users, businesses, services, workingDays, appointments, clients, absenc
 import { type User, type InsertUser, type Business, type Service, type WorkingDay, type Appointment, type Client, type Absence } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, sql } from "drizzle-orm";
+import { hashPassword } from "./auth";
 
 export interface IStorage {
   // User & Auth
@@ -115,7 +116,6 @@ export class DatabaseStorage implements IStorage {
       const results = [];
       for (const update of updates) {
         if (update.dayOfWeek !== undefined) {
-           // We assume updates contain dayOfWeek to identify the record for this business
            const [updated] = await tx.update(workingDays)
              .set(update)
              .where(and(eq(workingDays.businessId, businessId), eq(workingDays.dayOfWeek, update.dayOfWeek)))
@@ -140,7 +140,6 @@ export class DatabaseStorage implements IStorage {
 
   async createAppointment(data: typeof appointments.$inferInsert & { clientName: string, clientPhone: string }): Promise<Appointment> {
     return await db.transaction(async (tx) => {
-      // 1. Check absences
       const start = new Date(data.startAt);
       const end = new Date(data.endAt);
       
@@ -158,15 +157,14 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Business owner is absent during this time.");
       }
 
-      // 2. Check appointment conflicts
       const apptConflict = await tx.query.appointments.findFirst({
         where: and(
           eq(appointments.businessId, data.businessId),
           eq(appointments.status, "CONFIRMED"),
           or(
-            and(lte(appointments.startAt, start), gte(appointments.endAt, start)), // New start is inside existing
-            and(lte(appointments.startAt, end), gte(appointments.endAt, end)),     // New end is inside existing
-            and(gte(appointments.startAt, start), lte(appointments.endAt, end))    // Existing is inside new
+            and(lte(appointments.startAt, start), gte(appointments.endAt, start)),
+            and(lte(appointments.startAt, end), gte(appointments.endAt, end)),
+            and(gte(appointments.startAt, start), lte(appointments.endAt, end))
           )
         )
       });
@@ -175,7 +173,6 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Time slot already booked.");
       }
 
-      // 3. Get or create client
       let clientId = data.clientId;
       if (!clientId) {
         let client = await tx.query.clients.findFirst({
@@ -192,7 +189,6 @@ export class DatabaseStorage implements IStorage {
         clientId = client.id;
       }
 
-      // 4. Create appointment
       const [appt] = await tx.insert(appointments).values({
         ...data,
         clientId,
@@ -261,3 +257,38 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+async function seed() {
+  const usersCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+  if (Number(usersCount[0].count) === 0) {
+    const hashedPassword = await hashPassword("password");
+    await storage.createUser({
+      email: "demo@example.com",
+      password: hashedPassword,
+      name: "Demo User",
+      role: "OWNER",
+      businessName: "Demo Business"
+    });
+    
+    const [user] = await db.select().from(users).limit(1);
+    const businessId = user.businessId!;
+    
+    await storage.createService({
+      name: "Consultation",
+      price: "50",
+      duration: 30,
+      active: true,
+      businessId
+    });
+    
+    await storage.createService({
+      name: "Therapy",
+      price: "100",
+      duration: 60,
+      active: true,
+      businessId
+    });
+  }
+}
+
+seed().catch(console.error);
