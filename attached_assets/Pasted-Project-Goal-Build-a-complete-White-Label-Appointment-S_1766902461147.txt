@@ -1,0 +1,142 @@
+Project Goal: Build a complete White-Label Appointment SaaS (MVP). The system consists of a Backend API (Node.js) that handles scheduling logic and race conditions, and a Frontend Dashboard (React) for business owners to manage their calendar.
+
+Tech Stack:
+
+Backend: Node.js, Express.js.
+
+Database: PostgreSQL with Prisma ORM.
+
+Frontend: React (Vite), Tailwind CSS, Lucide React (Icons).
+
+UI Library: Shadcn/UI (or generic accessible components using Tailwind).
+
+Architecture: Monorepo structure (client/ and server/ folders).
+
+Database Schema (Prisma): Please initialize the project with the following schema.prisma. This is the single source of truth:
+
+Snippet de código
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role { OWNER, ADMIN, STAFF }
+enum AppointmentStatus { PENDING, CONFIRMED, CANCELED, COMPLETED, NO_SHOW }
+
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  password String
+  name String
+  role Role @default(OWNER)
+  business Business? @relation(fields: [businessId], references: [id])
+  businessId String?
+}
+
+model Business {
+  id String @id @default(uuid())
+  name String
+  slug String @unique
+  whatsapp String?
+  apiKey String @unique @default(uuid())
+  users User[]
+  appointments Appointment[]
+  services Service[]
+  clients Client[]
+  workingDays WorkingDay[]
+  absences Absence[]
+}
+
+model WorkingDay {
+  id String @id @default(uuid())
+  dayOfWeek Int
+  isOpen Boolean @default(true)
+  startTime String
+  endTime String
+  businessId String
+  business Business @relation(fields: [businessId], references: [id])
+}
+
+model Service {
+  id String @id @default(uuid())
+  name String
+  price Decimal
+  duration Int
+  active Boolean @default(true)
+  businessId String
+  business Business @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+}
+
+model Client {
+  id String @id @default(uuid())
+  name String
+  phone String
+  businessId String
+  business Business @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+  @@unique([businessId, phone])
+}
+
+model Appointment {
+  id String @id @default(uuid())
+  startAt DateTime
+  endAt DateTime
+  status AppointmentStatus @default(CONFIRMED)
+  clientId String?
+  client Client? @relation(fields: [clientId], references: [id])
+  serviceId String?
+  service Service? @relation(fields: [serviceId], references: [id])
+  businessId String
+  business Business @relation(fields: [businessId], references: [id])
+}
+
+model Absence {
+  id String @id @default(uuid())
+  startDate DateTime
+  endDate DateTime?
+  reason String?
+  businessId String
+  business Business @relation(fields: [businessId], references: [id])
+}
+Implementation Steps (Execute in order):
+
+Phase 1: Backend Setup
+
+Initialize server/ with Express.
+
+Set up Prisma Client.
+
+Critical: Implement a POST /api/appointments endpoint that uses Prisma Transactions ($transaction).
+
+Logic: Before creating an appointment, check the Absence table for the business. If the owner is absent, reject. Then check Appointment table for time conflicts. If conflict, reject (409).
+
+Implement GET /api/slots that returns available time slots based on Service duration and WorkingDays.
+
+Phase 2: Frontend Setup (Client)
+
+Initialize client/ with Vite + React.
+
+Configure Tailwind CSS.
+
+Create a clean, responsive layout with a Sidebar (Dashboard, Calendar, Services, Settings).
+
+Phase 3: Dashboard Pages
+
+Dashboard: Show 4 summary cards (Today's Appts, Revenue, No-Shows) and a list of recent bookings.
+
+Calendar: Build a visual calendar view (Day/Week) that fetches data from GET /api/appointments.
+
+Feature: Add a big red button "Block Time (Emergency)". When clicked, open a Modal to create an entry in the Absence table.
+
+Services: A CRUD table to Add/Edit services (Name, Price, Duration).
+
+Settings: A page to view the apiKey (make it copyable) and configure WorkingDays (Opening hours).
+
+Phase 4: Integration Ensure the React frontend proxies requests to the Express backend.
+
+Tone & Style: Make the UI look professional, using a white/gray/indigo color scheme. Focus on error handling (e.g., if double booking happens, show a toast notification).
