@@ -1,4 +1,4 @@
-import { users, businesses, services, workingDays, appointments, clients, absences } from "@shared/schema";
+import { users, businesses, services, workingDays, appointments, clients, absences, type InsertUser } from "@shared/schema";
 import { type User, type Business, type Service, type WorkingDay, type Appointment, type Client, type Absence } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, sql } from "drizzle-orm";
@@ -218,7 +218,7 @@ export class DatabaseStorage implements IStorage {
     return newClient;
   }
 
-  async getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, totalClients: number, recentBookings: (Appointment & { client: Client | null, service: Service | null })[] }> {
+  async getStats(businessId: string): Promise<any> {
     const now = new Date();
     const startOfDay = new Date(now.setHours(0,0,0,0));
     const endOfDay = new Date(now.setHours(23,59,59,999));
