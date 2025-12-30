@@ -26,19 +26,20 @@ export default function Dashboard() {
     return <div className="flex h-96 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
 
-  // Mock data for chart since backend doesn't provide historical data yet
-  const chartData = [
-    { name: 'Mon', revenue: 400 },
-    { name: 'Tue', revenue: 300 },
-    { name: 'Wed', revenue: 600 },
-    { name: 'Thu', revenue: 800 },
-    { name: 'Fri', revenue: 500 },
-    { name: 'Sat', revenue: 900 },
-    { name: 'Sun', revenue: 400 },
-  ];
+  // No mock data - using dynamic revenue or empty array if not available
+  const chartData = stats?.recentBookings.slice(0, 7).map((b: any) => ({
+    name: format(new Date(b.startAt), "EEE"),
+    revenue: Number(b.service?.price || 0)
+  })) || [];
 
-  const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
-    <Card className="glass-card overflow-hidden relative hover-elevate active-elevate-2 cursor-pointer transition-all duration-200 group border-transparent hover:border-slate-200">
+  const StatCard = ({ title, value, icon: Icon, color, trend, onClick }: any) => (
+    <Card 
+      className={clsx(
+        "glass-card overflow-hidden relative transition-all duration-200 group border-transparent",
+        onClick ? "hover-elevate active-elevate-2 cursor-pointer hover:border-slate-200" : "cursor-default"
+      )}
+      onClick={onClick}
+    >
       <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}-500/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-${color}-500/20 transition-colors`} />
       <CardContent className="p-6">
         <div className="flex justify-between items-start relative z-10">
@@ -73,14 +74,13 @@ export default function Dashboard() {
           value={stats?.todayCount || 0}
           icon={CalendarCheck}
           color="indigo"
-          trend="+12% from yesterday"
+          onClick={() => console.log("Navigate to today's schedule")}
         />
         <StatCard 
           title="Total Revenue" 
           value={`$${stats?.revenue || 0}`}
           icon={DollarSign}
           color="emerald"
-          trend="+8% from last week"
         />
         <StatCard 
           title="No-Shows" 
@@ -90,10 +90,9 @@ export default function Dashboard() {
         />
         <StatCard 
           title="Total Clients" 
-          value="1,203" // Mock value
+          value={stats?.totalClients || 0}
           icon={Users}
           color="blue"
-          trend="+24 new this month"
         />
       </div>
 

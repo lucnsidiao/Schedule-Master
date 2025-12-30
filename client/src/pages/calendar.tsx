@@ -34,7 +34,15 @@ export default function CalendarPage() {
     // Quick and dirty date construction (in real app use a date picker)
     const dateStr = formData.get("date") as string;
     const timeStr = formData.get("time") as string;
-    const startAt = new Date(`${dateStr}T${timeStr}`);
+    
+    // Round time to nearest 15 minutes for optimization
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+    const finalHours = roundedMinutes === 60 ? hours + 1 : hours;
+    const optimizedTime = `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+
+    const startAt = new Date(`${dateStr}T${optimizedTime}`);
     
     const serviceId = formData.get("serviceId") as string;
     const service = services?.find(s => s.id === serviceId);

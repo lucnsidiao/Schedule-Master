@@ -218,7 +218,7 @@ export class DatabaseStorage implements IStorage {
     return newClient;
   }
 
-  async getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, recentBookings: (Appointment & { client: Client | null, service: Service | null })[] }> {
+  async getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, totalClients: number, recentBookings: (Appointment & { client: Client | null, service: Service | null })[] }> {
     const now = new Date();
     const startOfDay = new Date(now.setHours(0,0,0,0));
     const endOfDay = new Date(now.setHours(23,59,59,999));
@@ -244,6 +244,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     const noShows = await db.select({ count: sql<number>`count(*)` }).from(appointments).where(and(eq(appointments.businessId, businessId), eq(appointments.status, "NO_SHOW")));
+    const clientsCount = await db.select({ count: sql<number>`count(*)` }).from(clients).where(eq(clients.businessId, businessId));
 
     const revenue = completedAppts.reduce((sum, appt) => sum + Number(appt.service?.price || 0), 0);
 
@@ -251,6 +252,7 @@ export class DatabaseStorage implements IStorage {
       todayCount: todayAppts.length,
       revenue,
       noShows: Number(noShows[0]?.count || 0),
+      totalClients: Number(clientsCount[0]?.count || 0),
       recentBookings: allAppts
     };
   }
