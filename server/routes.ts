@@ -1,12 +1,13 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth, hashPassword } from "./auth";
 import { z } from "zod";
 import passport from "passport";
+import { getAvailableSlots } from "./services/availability";
 
-function isAuthenticated(req: any, res: any, next: any) {
+function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated()) {
     return next();
   }
@@ -36,7 +37,7 @@ export async function registerRoutes(
         password: hashedPassword,
         businessId: null,
         businessName: input.businessName,
-      } as any);
+      });
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -67,14 +68,14 @@ export async function registerRoutes(
 
   // Business
   app.get(api.businesses.get.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
     if (!user.businessId) return res.status(404).json({ message: "No business found" });
     const business = await storage.getBusiness(user.businessId);
     res.json(business);
   });
 
   app.patch(api.businesses.update.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
     if (!user.businessId) return res.status(404).json({ message: "No business found" });
     const input = api.businesses.update.input.parse(req.body);
     const updated = await storage.updateBusiness(user.businessId, input);
@@ -83,13 +84,15 @@ export async function registerRoutes(
 
   // Services
   app.get(api.services.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const services = await storage.getServices(user.businessId);
     res.json(services);
   });
 
   app.post(api.services.create.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const input = api.services.create.input.parse(req.body);
     const service = await storage.createService({ ...input, businessId: user.businessId });
     res.status(201).json(service);
@@ -108,13 +111,15 @@ export async function registerRoutes(
 
   // Working Days
   app.get(api.workingDays.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const days = await storage.getWorkingDays(user.businessId);
     res.json(days);
   });
 
   app.put(api.workingDays.update.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const input = api.workingDays.update.input.parse(req.body);
     const updated = await storage.updateWorkingDays(user.businessId, input);
     res.json(updated);
@@ -122,14 +127,16 @@ export async function registerRoutes(
 
   // Appointments
   app.get(api.appointments.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const appts = await storage.getAppointments(user.businessId);
     res.json(appts);
   });
 
   app.post(api.appointments.create.path, isAuthenticated, async (req, res) => {
     try {
-      const user = req.user as any;
+      const user = req.user!;
+      if (!user.businessId) return res.status(400).json({ message: "User has no business" });
       const bodySchema = api.appointments.create.input.extend({
         startAt: z.coerce.date(),
         endAt: z.coerce.date(),
@@ -150,23 +157,26 @@ export async function registerRoutes(
 
   // Absences
   app.get(api.absences.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const absences = await storage.getAbsences(user.businessId);
     res.json(absences);
   });
 
   app.get(api.customers.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
-    const customersList = await storage.getCustomers(user.businessId!);
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
+    const customersList = await storage.getCustomers(user.businessId);
     res.json(customersList);
   });
 
   app.post(api.customers.create.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const input = api.customers.create.input.parse(req.body);
     const customer = await storage.createCustomer({
       ...input,
-      businessId: user.businessId!
+      businessId: user.businessId
     });
     res.status(201).json(customer);
   });
@@ -189,7 +199,8 @@ export async function registerRoutes(
   });
 
   app.post(api.absences.create.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const input = api.absences.create.input.parse(req.body);
     const absence = await storage.createAbsence({ ...input, businessId: user.businessId });
     res.status(201).json(absence);
@@ -197,72 +208,25 @@ export async function registerRoutes(
 
   // Slots Calculation
   app.get(api.slots.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
-    const { date, serviceId } = api.slots.list.input.parse(req.query);
+    try {
+      const user = req.user!;
+      if (!user.businessId) return res.status(400).json({ message: "User has no business" });
+      const { date, serviceId } = api.slots.list.input.parse(req.query);
 
-    // Fetch necessary data
-    const workingDays = await storage.getWorkingDays(user.businessId);
-    const appointments = await storage.getAppointments(user.businessId);
-    const absences = await storage.getAbsences(user.businessId);
-    const services = await storage.getServices(user.businessId);
-    const service = services.find(s => s.id === serviceId);
-
-    if (!service) return res.status(404).json({ message: "Service not found" });
-
-    // Determine day of week
-    const targetDate = new Date(date);
-    const dayOfWeek = targetDate.getDay();
-    const workingDay = workingDays.find(d => d.dayOfWeek === dayOfWeek);
-
-    if (!workingDay || !workingDay.isOpen) {
-      return res.json([]);
-    }
-
-    // Generate slots
-    const slots: string[] = [];
-    const [startHour, startMin] = workingDay.startTime.split(":").map(Number);
-    const [endHour, endMin] = workingDay.endTime.split(":").map(Number);
-
-    let current = new Date(targetDate);
-    current.setHours(startHour, startMin, 0, 0);
-
-    const end = new Date(targetDate);
-    end.setHours(endHour, endMin, 0, 0);
-
-    const durationMs = service.duration * 60 * 1000;
-
-    while (current.getTime() + durationMs <= end.getTime()) {
-      const slotStart = new Date(current);
-      const slotEnd = new Date(current.getTime() + durationMs);
-
-      // Check overlaps
-      const isAbsent = absences.some(a =>
-        (a.startDate <= slotStart && (a.endDate ? a.endDate >= slotStart : false)) ||
-        (a.startDate <= slotEnd && (a.endDate ? a.endDate >= slotEnd : false))
-      );
-
-      const isBooked = appointments.some(a =>
-        a.status === "CONFIRMED" && (
-          (a.startAt < slotEnd && a.endAt > slotStart)
-        )
-      );
-
-      if (!isAbsent && !isBooked) {
-        slots.push(slotStart.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }));
+      const slots = await getAvailableSlots(user.businessId, date, serviceId);
+      res.json(slots);
+    } catch (err: any) {
+      if (err.message === "Service not found") {
+        return res.status(404).json({ message: err.message });
       }
-
-      // Increment by 30 mins (or service duration? prompt says based on service duration. Let's step by service duration for MVP simplicity, or fixed 15m/30m)
-      // Standard practice: Step by smaller interval (e.g. 15m) allows more flexibility.
-      // But let's use 30 mins as a standard step.
-      current.setMinutes(current.getMinutes() + 30);
+      throw err;
     }
-
-    res.json(slots);
   });
 
   // Stats
   app.get(api.stats.get.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
+    const user = req.user!;
+    if (!user.businessId) return res.status(400).json({ message: "User has no business" });
     const stats = await storage.getStats(user.businessId);
     res.json(stats);
   });
@@ -279,7 +243,7 @@ export async function registerRoutes(
       role: "OWNER",
       businessId: null,
       businessName: "Demo Clinic",
-    } as any);
+    });
 
     if (user.businessId) {
       await storage.createService({ businessId: user.businessId, name: "Consultation", price: "50", duration: 30, active: true });

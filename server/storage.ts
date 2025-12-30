@@ -15,7 +15,6 @@ import {
   type Appointment,
   type Customer,
   type Absence,
-  type User as InsertUser,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, sql } from "drizzle-orm";
@@ -25,7 +24,7 @@ export interface IStorage {
   // User & Auth
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>; // username is email
-  createUser(user: InsertUser & { businessName: string }): Promise<User>;
+  createUser(user: typeof users.$inferInsert & { businessName: string }): Promise<User>;
 
   // Business
   getBusiness(id: string): Promise<Business | undefined>;
@@ -101,7 +100,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(
-    insertUser: InsertUser & { businessName: string },
+    insertUser: typeof users.$inferInsert & { businessName: string },
   ): Promise<User> {
     return await db.transaction(async (tx) => {
       // Create business first
