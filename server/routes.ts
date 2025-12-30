@@ -182,8 +182,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  app.patch("/api/appointments/:id/status", isAuthenticated, async (req, res) => {
-    const { status } = req.body;
+  app.patch(api.appointments.updateStatus.path, isAuthenticated, async (req, res) => {
+    const { status } = api.appointments.updateStatus.input.parse(req.body);
     const appt = await storage.updateAppointmentStatus(req.params.id, status);
     res.json(appt);
   });

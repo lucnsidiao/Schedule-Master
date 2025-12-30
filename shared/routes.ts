@@ -149,6 +149,14 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    updateStatus: {
+      method: 'PATCH' as const,
+      path: '/api/appointments/:id/status',
+      input: z.object({ status: z.string() }),
+      responses: {
+        200: z.custom<typeof appointments.$inferSelect>(),
+      },
+    },
   },
   absences: {
     create: {
