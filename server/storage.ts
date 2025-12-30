@@ -1,5 +1,22 @@
-import { users, businesses, services, workingDays, appointments, customers, absences } from "@shared/schema";
-import { type User, type Business, type Service, type WorkingDay, type Appointment, type Customer, type Absence, type User as InsertUser } from "@shared/schema";
+import {
+  users,
+  businesses,
+  services,
+  workingDays,
+  appointments,
+  customers,
+  absences,
+} from "@shared/schema";
+import {
+  type User,
+  type Business,
+  type Service,
+  type WorkingDay,
+  type Appointment,
+  type Customer,
+  type Absence,
+  type User as InsertUser,
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, sql } from "drizzle-orm";
 import { hashPassword } from "./auth";
@@ -13,7 +30,7 @@ export interface IStorage {
   // Business
   getBusiness(id: string): Promise<Business | undefined>;
   updateBusiness(id: string, updates: Partial<Business>): Promise<Business>;
-  
+
   // Services
   getServices(businessId: string): Promise<Service[]>;
   createService(service: typeof services.$inferInsert): Promise<Service>;
@@ -22,24 +39,49 @@ export interface IStorage {
 
   // Working Days
   getWorkingDays(businessId: string): Promise<WorkingDay[]>;
-  updateWorkingDays(businessId: string, updates: Partial<WorkingDay>[]): Promise<WorkingDay[]>;
+  updateWorkingDays(
+    businessId: string,
+    updates: Partial<WorkingDay>[],
+  ): Promise<WorkingDay[]>;
 
   // Appointments
-  getAppointments(businessId: string): Promise<(Appointment & { customer: Customer | null, service: Service | null })[]>;
-  createAppointment(appointment: typeof appointments.$inferInsert & { clientName: string, clientPhone: string }): Promise<Appointment>;
-  
+  getAppointments(
+    businessId: string,
+  ): Promise<
+    (Appointment & { customer: Customer | null; service: Service | null })[]
+  >;
+  createAppointment(
+    appointment: typeof appointments.$inferInsert & {
+      costumerName: string;
+      costumerPhone: string;
+    },
+  ): Promise<Appointment>;
+
   // Absences
   getAbsences(businessId: string): Promise<Absence[]>;
   createAbsence(absence: typeof absences.$inferInsert): Promise<Absence>;
 
   // Customers
-  getCustomerByPhone(businessId: string, phone: string): Promise<Customer | undefined>;
+  getCustomerByPhone(
+    businessId: string,
+    phone: string,
+  ): Promise<Customer | undefined>;
   createCustomer(customer: typeof customers.$inferInsert): Promise<Customer>;
   getCustomers(businessId: string): Promise<Customer[]>;
   updateAppointmentStatus(id: string, status: string): Promise<Appointment>;
 
   // Stats
-  getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, recentBookings: (Appointment & { customer: Customer | null, service: Service | null })[] }>;
+  getStats(
+    businessId: string,
+  ): Promise<{
+    todayCount: number;
+    revenue: number;
+    noShows: number;
+    recentBookings: (Appointment & {
+      customer: Customer | null;
+      service: Service | null;
+    })[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -49,23 +91,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, username));
     return user;
   }
 
-  async createUser(insertUser: InsertUser & { businessName: string }): Promise<User> {
+  async createUser(
+    insertUser: InsertUser & { businessName: string },
+  ): Promise<User> {
     return await db.transaction(async (tx) => {
       // Create business first
-      const [business] = await tx.insert(businesses).values({
-        name: insertUser.businessName,
-        slug: insertUser.businessName.toLowerCase().replace(/\s+/g, '-'),
-      }).returning();
+      const [business] = await tx
+        .insert(businesses)
+        .values({
+          name: insertUser.businessName,
+          slug: insertUser.businessName.toLowerCase().replace(/\s+/g, "-"),
+        })
+        .returning();
 
       // Create user linked to business
-      const [user] = await tx.insert(users).values({
-        ...insertUser,
-        businessId: business.id,
-      }).returning();
+      const [user] = await tx
+        .insert(users)
+        .values({
+          ...insertUser,
+          businessId: business.id,
+        })
+        .returning();
 
       // Initialize default working days (Mon-Fri 9-5)
       const defaultWorkingDays = Array.from({ length: 7 }).map((_, i) => ({
@@ -82,17 +135,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBusiness(id: string): Promise<Business | undefined> {
-    const [business] = await db.select().from(businesses).where(eq(businesses.id, id));
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.id, id));
     return business;
   }
 
-  async updateBusiness(id: string, updates: Partial<Business>): Promise<Business> {
-    const [business] = await db.update(businesses).set(updates).where(eq(businesses.id, id)).returning();
+  async updateBusiness(
+    id: string,
+    updates: Partial<Business>,
+  ): Promise<Business> {
+    const [business] = await db
+      .update(businesses)
+      .set(updates)
+      .where(eq(businesses.id, id))
+      .returning();
     return business;
   }
 
   async getServices(businessId: string): Promise<Service[]> {
-    return await db.select().from(services).where(eq(services.businessId, businessId));
+    return await db
+      .select()
+      .from(services)
+      .where(eq(services.businessId, businessId));
   }
 
   async createService(service: typeof services.$inferInsert): Promise<Service> {
@@ -101,7 +167,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateService(id: string, updates: Partial<Service>): Promise<Service> {
-    const [service] = await db.update(services).set(updates).where(eq(services.id, id)).returning();
+    const [service] = await db
+      .update(services)
+      .set(updates)
+      .where(eq(services.id, id))
+      .returning();
     return service;
   }
 
@@ -110,49 +180,70 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWorkingDays(businessId: string): Promise<WorkingDay[]> {
-    return await db.select().from(workingDays).where(eq(workingDays.businessId, businessId));
+    return await db
+      .select()
+      .from(workingDays)
+      .where(eq(workingDays.businessId, businessId));
   }
 
-  async updateWorkingDays(businessId: string, updates: Partial<WorkingDay>[]): Promise<WorkingDay[]> {
+  async updateWorkingDays(
+    businessId: string,
+    updates: Partial<WorkingDay>[],
+  ): Promise<WorkingDay[]> {
     return await db.transaction(async (tx) => {
       const results = [];
       for (const update of updates) {
         if (update.dayOfWeek !== undefined) {
-           const [updated] = await tx.update(workingDays)
-             .set(update)
-             .where(and(eq(workingDays.businessId, businessId), eq(workingDays.dayOfWeek, update.dayOfWeek)))
-             .returning();
-           results.push(updated);
+          const [updated] = await tx
+            .update(workingDays)
+            .set(update)
+            .where(
+              and(
+                eq(workingDays.businessId, businessId),
+                eq(workingDays.dayOfWeek, update.dayOfWeek),
+              ),
+            )
+            .returning();
+          results.push(updated);
         }
       }
       return results;
     });
   }
 
-  async getAppointments(businessId: string): Promise<(Appointment & { customer: Customer | null, service: Service | null })[]> {
+  async getAppointments(
+    businessId: string,
+  ): Promise<
+    (Appointment & { customer: Customer | null; service: Service | null })[]
+  > {
     return await db.query.appointments.findMany({
       where: eq(appointments.businessId, businessId),
       with: {
         customer: true,
-        service: true
+        service: true,
       },
       orderBy: (appointments, { desc }) => [desc(appointments.startAt)],
     });
   }
 
-  async createAppointment(data: typeof appointments.$inferInsert & { clientName: string, clientPhone: string }): Promise<Appointment> {
+  async createAppointment(
+    data: typeof appointments.$inferInsert & {
+      costumerName: string;
+      costumerPhone: string;
+    },
+  ): Promise<Appointment> {
     return await db.transaction(async (tx) => {
       const start = new Date(data.startAt);
       const end = new Date(data.endAt);
-      
+
       const absenceConflict = await tx.query.absences.findFirst({
         where: and(
           eq(absences.businessId, data.businessId),
           or(
-             and(lte(absences.startDate, start), gte(absences.endDate, start)),
-             and(lte(absences.startDate, end), gte(absences.endDate, end))
-          )
-        )
+            and(lte(absences.startDate, start), gte(absences.endDate, start)),
+            and(lte(absences.startDate, end), gte(absences.endDate, end)),
+          ),
+        ),
       });
 
       if (absenceConflict) {
@@ -164,11 +255,14 @@ export class DatabaseStorage implements IStorage {
           eq(appointments.businessId, data.businessId),
           eq(appointments.status, "CONFIRMED"),
           or(
-            and(lte(appointments.startAt, start), gte(appointments.endAt, start)),
+            and(
+              lte(appointments.startAt, start),
+              gte(appointments.endAt, start),
+            ),
             and(lte(appointments.startAt, end), gte(appointments.endAt, end)),
-            and(gte(appointments.startAt, start), lte(appointments.endAt, end))
-          )
-        )
+            and(gte(appointments.startAt, start), lte(appointments.endAt, end)),
+          ),
+        ),
       });
 
       if (apptConflict) {
@@ -178,31 +272,43 @@ export class DatabaseStorage implements IStorage {
       let customerId = data.customerId;
       if (!customerId) {
         let customer = await tx.query.customers.findFirst({
-          where: and(eq(customers.businessId, data.businessId), eq(customers.phone, data.clientPhone))
+          where: and(
+            eq(customers.businessId, data.businessId),
+            eq(customers.phone, data.costumerPhone),
+          ),
         });
-        
+
         if (!customer) {
-          [customer] = await tx.insert(customers).values({
-            name: data.clientName,
-            phone: data.clientPhone,
-            businessId: data.businessId
-          }).returning();
+          [customer] = await tx
+            .insert(customers)
+            .values({
+              name: data.costumerName,
+              phone: data.costumerPhone,
+              businessId: data.businessId,
+            })
+            .returning();
         }
         customerId = customer.id;
       }
 
-      const [appt] = await tx.insert(appointments).values({
-        ...data,
-        customerId,
-        status: "CONFIRMED"
-      }).returning();
+      const [appt] = await tx
+        .insert(appointments)
+        .values({
+          ...data,
+          customerId,
+          status: "CONFIRMED",
+        })
+        .returning();
 
       return appt;
     });
   }
 
   async getAbsences(businessId: string): Promise<Absence[]> {
-    return await db.select().from(absences).where(eq(absences.businessId, businessId));
+    return await db
+      .select()
+      .from(absences)
+      .where(eq(absences.businessId, businessId));
   }
 
   async createAbsence(absence: typeof absences.$inferInsert): Promise<Absence> {
@@ -210,22 +316,42 @@ export class DatabaseStorage implements IStorage {
     return newAbsence;
   }
 
-  async getCustomerByPhone(businessId: string, phone: string): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(and(eq(customers.businessId, businessId), eq(customers.phone, phone)));
+  async getCustomerByPhone(
+    businessId: string,
+    phone: string,
+  ): Promise<Customer | undefined> {
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(
+        and(eq(customers.businessId, businessId), eq(customers.phone, phone)),
+      );
     return customer;
   }
 
-  async createCustomer(customer: typeof customers.$inferInsert): Promise<Customer> {
-    const [newCustomer] = await db.insert(customers).values(customer).returning();
+  async createCustomer(
+    customer: typeof customers.$inferInsert,
+  ): Promise<Customer> {
+    const [newCustomer] = await db
+      .insert(customers)
+      .values(customer)
+      .returning();
     return newCustomer;
   }
 
   async getCustomers(businessId: string): Promise<Customer[]> {
-    return await db.select().from(customers).where(eq(customers.businessId, businessId));
+    return await db
+      .select()
+      .from(customers)
+      .where(eq(customers.businessId, businessId));
   }
 
-  async updateAppointmentStatus(id: string, status: string): Promise<Appointment> {
-    const [appt] = await db.update(appointments)
+  async updateAppointmentStatus(
+    id: string,
+    status: string,
+  ): Promise<Appointment> {
+    const [appt] = await db
+      .update(appointments)
       .set({ status: status as any })
       .where(eq(appointments.id, id))
       .returning();
@@ -234,16 +360,19 @@ export class DatabaseStorage implements IStorage {
 
   async getStats(businessId: string): Promise<any> {
     const now = new Date();
-    const startOfDay = new Date(now.setHours(0,0,0,0));
-    const endOfDay = new Date(now.setHours(23,59,59,999));
+    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
 
-    const todayAppts = await db.select().from(appointments).where(
-      and(
-        eq(appointments.businessId, businessId),
-        gte(appointments.startAt, startOfDay),
-        lte(appointments.startAt, endOfDay)
-      )
-    );
+    const todayAppts = await db
+      .select()
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.businessId, businessId),
+          gte(appointments.startAt, startOfDay),
+          lte(appointments.startAt, endOfDay),
+        ),
+      );
 
     const allAppts = await db.query.appointments.findMany({
       where: eq(appointments.businessId, businessId),
@@ -254,26 +383,40 @@ export class DatabaseStorage implements IStorage {
 
     const revenueAppts = await db.query.appointments.findMany({
       where: and(
-        eq(appointments.businessId, businessId), 
+        eq(appointments.businessId, businessId),
         or(
           eq(appointments.status, "COMPLETED"),
-          eq(appointments.status, "CONFIRMED")
-        )
+          eq(appointments.status, "CONFIRMED"),
+        ),
       ),
-      with: { service: true }
+      with: { service: true },
     });
 
-    const noShows = await db.select({ count: sql<number>`count(*)` }).from(appointments).where(and(eq(appointments.businessId, businessId), eq(appointments.status, "NO_SHOW")));
-    const customersCount = await db.select({ count: sql<number>`count(*)` }).from(customers).where(eq(customers.businessId, businessId));
+    const noShows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(appointments)
+      .where(
+        and(
+          eq(appointments.businessId, businessId),
+          eq(appointments.status, "NO_SHOW"),
+        ),
+      );
+    const customersCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(customers)
+      .where(eq(customers.businessId, businessId));
 
-    const revenue = revenueAppts.reduce((sum, appt) => sum + Number(appt.service?.price || 0), 0);
+    const revenue = revenueAppts.reduce(
+      (sum, appt) => sum + Number(appt.service?.price || 0),
+      0,
+    );
 
     return {
       todayCount: todayAppts.length,
       revenue,
       noShows: Number(noShows[0]?.count || 0),
       totalCustomers: Number(customersCount[0]?.count || 0),
-      recentBookings: allAppts
+      recentBookings: allAppts,
     };
   }
 }
@@ -281,7 +424,9 @@ export class DatabaseStorage implements IStorage {
 export const storage = new DatabaseStorage();
 
 async function seed() {
-  const usersCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+  const usersCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users);
   if (Number(usersCount[0].count) === 0) {
     const hashedPassword = await hashPassword("password");
     await storage.createUser({
@@ -291,26 +436,26 @@ async function seed() {
       name: "Demo User",
       role: "OWNER",
       businessId: null,
-      businessName: "Demo Business"
+      businessName: "Demo Business",
     });
-    
+
     const [user] = await db.select().from(users).limit(1);
     const businessId = user.businessId!;
-    
+
     await storage.createService({
       name: "Consultation",
       price: "50",
       duration: 30,
       active: true,
-      businessId
+      businessId,
     });
-    
+
     await storage.createService({
       name: "Therapy",
       price: "100",
       duration: 60,
       active: true,
-      businessId
+      businessId,
     });
   }
 }
