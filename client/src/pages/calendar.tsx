@@ -69,10 +69,12 @@ export default function CalendarPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const dateStr = formData.get("date") as string;
+    const timeStr = formData.get("time") as string;
     
     try {
+      const startDate = new Date(`${dateStr}T${timeStr || '00:00'}`);
       await createAbsence.mutateAsync({
-        startDate: new Date(dateStr),
+        startDate,
         reason: formData.get("reason") as string,
       });
       setAbsenceOpen(false);
@@ -115,9 +117,15 @@ export default function CalendarPage() {
                 <DialogTitle>Block Time / Emergency</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateAbsence} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Date</Label>
-                  <Input type="date" name="date" required />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input type="date" name="date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Time</Label>
+                    <Input type="time" name="time" required />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Reason</Label>
