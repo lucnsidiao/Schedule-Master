@@ -10,7 +10,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import CalendarPage from "@/pages/calendar";
-import ClientsPage from "@/pages/clients";
+import CustomersPage from "@/pages/customers";
 import ServicesPage from "@/pages/services";
 import SettingsPage from "@/pages/settings";
 import { Layout } from "@/components/layout";
@@ -49,8 +49,8 @@ function Router() {
       <Route path="/calendar">
         <ProtectedRoute component={CalendarPage} />
       </Route>
-      <Route path="/clients">
-        <ProtectedRoute component={ClientsPage} />
+      <Route path="/customers">
+        <ProtectedRoute component={CustomersPage} />
       </Route>
       <Route path="/services">
         <ProtectedRoute component={ServicesPage} />

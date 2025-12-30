@@ -72,7 +72,7 @@ export default function CalendarPage() {
         serviceId,
         clientName: formData.get("clientName") as string,
         clientPhone: formData.get("clientPhone") as string,
-      });
+      } as any);
       setCreateOpen(false);
       toast({ title: "Appointment created successfully" });
     } catch (error: any) {
@@ -273,10 +273,10 @@ export default function CalendarPage() {
                             onClick={() => setSelectedAppt(appt)}
                           >
                             <div className="font-semibold text-slate-900 truncate">
-                              {appt.client.name}
+                              {appt.customer?.name}
                             </div>
                             <div className="text-slate-600 truncate">
-                              {appt.service.name}
+                              {appt.service?.name}
                             </div>
                             <div className="mt-1 text-[10px] font-medium uppercase opacity-60">
                               {appt.status}
@@ -290,14 +290,14 @@ export default function CalendarPage() {
                           <div className="space-y-4 py-4">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <Label className="text-slate-500">Client</Label>
-                                <p className="font-medium">{appt.client.name}</p>
-                                <p className="text-sm text-slate-500">{appt.client.phone}</p>
+                                <Label className="text-slate-500">Customer</Label>
+                                <p className="font-medium">{appt.customer?.name}</p>
+                                <p className="text-sm text-slate-500">{appt.customer?.phone}</p>
                               </div>
                               <div>
                                 <Label className="text-slate-500">Service</Label>
-                                <p className="font-medium">{appt.service.name}</p>
-                                <p className="text-sm text-slate-500">${appt.service.price} • {appt.service.duration}m</p>
+                                <p className="font-medium">{appt.service?.name}</p>
+                                <p className="text-sm text-slate-500">${appt.service?.price} • {appt.service?.duration}m</p>
                               </div>
                             </div>
                             <div>

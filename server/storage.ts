@@ -1,5 +1,5 @@
-import { users, businesses, services, workingDays, appointments, clients, absences } from "@shared/schema";
-import { type User, type Business, type Service, type WorkingDay, type Appointment, type Client, type Absence, type User as InsertUser } from "@shared/schema";
+import { users, businesses, services, workingDays, appointments, customers, absences } from "@shared/schema";
+import { type User, type Business, type Service, type WorkingDay, type Appointment, type Customer, type Absence, type User as InsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, sql } from "drizzle-orm";
 import { hashPassword } from "./auth";
@@ -25,21 +25,21 @@ export interface IStorage {
   updateWorkingDays(businessId: string, updates: Partial<WorkingDay>[]): Promise<WorkingDay[]>;
 
   // Appointments
-  getAppointments(businessId: string): Promise<(Appointment & { client: Client | null, service: Service | null })[]>;
+  getAppointments(businessId: string): Promise<(Appointment & { customer: Customer | null, service: Service | null })[]>;
   createAppointment(appointment: typeof appointments.$inferInsert & { clientName: string, clientPhone: string }): Promise<Appointment>;
   
   // Absences
   getAbsences(businessId: string): Promise<Absence[]>;
   createAbsence(absence: typeof absences.$inferInsert): Promise<Absence>;
 
-  // Clients
-  getClientByPhone(businessId: string, phone: string): Promise<Client | undefined>;
-  createClient(client: typeof clients.$inferInsert): Promise<Client>;
-  getClients(businessId: string): Promise<Client[]>;
+  // Customers
+  getCustomerByPhone(businessId: string, phone: string): Promise<Customer | undefined>;
+  createCustomer(customer: typeof customers.$inferInsert): Promise<Customer>;
+  getCustomers(businessId: string): Promise<Customer[]>;
   updateAppointmentStatus(id: string, status: string): Promise<Appointment>;
 
   // Stats
-  getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, recentBookings: (Appointment & { client: Client | null, service: Service | null })[] }>;
+  getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, recentBookings: (Appointment & { customer: Customer | null, service: Service | null })[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -129,11 +129,11 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getAppointments(businessId: string): Promise<(Appointment & { client: Client | null, service: Service | null })[]> {
+  async getAppointments(businessId: string): Promise<(Appointment & { customer: Customer | null, service: Service | null })[]> {
     return await db.query.appointments.findMany({
       where: eq(appointments.businessId, businessId),
       with: {
-        client: true,
+        customer: true,
         service: true
       },
       orderBy: (appointments, { desc }) => [desc(appointments.startAt)],
@@ -175,25 +175,25 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Time slot already booked.");
       }
 
-      let clientId = data.clientId;
-      if (!clientId) {
-        let client = await tx.query.clients.findFirst({
-          where: and(eq(clients.businessId, data.businessId), eq(clients.phone, data.clientPhone))
+      let customerId = data.customerId;
+      if (!customerId) {
+        let customer = await tx.query.customers.findFirst({
+          where: and(eq(customers.businessId, data.businessId), eq(customers.phone, data.clientPhone))
         });
         
-        if (!client) {
-          [client] = await tx.insert(clients).values({
+        if (!customer) {
+          [customer] = await tx.insert(customers).values({
             name: data.clientName,
             phone: data.clientPhone,
             businessId: data.businessId
           }).returning();
         }
-        clientId = client.id;
+        customerId = customer.id;
       }
 
       const [appt] = await tx.insert(appointments).values({
         ...data,
-        clientId,
+        customerId,
         status: "CONFIRMED"
       }).returning();
 
@@ -210,18 +210,18 @@ export class DatabaseStorage implements IStorage {
     return newAbsence;
   }
 
-  async getClientByPhone(businessId: string, phone: string): Promise<Client | undefined> {
-    const [client] = await db.select().from(clients).where(and(eq(clients.businessId, businessId), eq(clients.phone, phone)));
-    return client;
+  async getCustomerByPhone(businessId: string, phone: string): Promise<Customer | undefined> {
+    const [customer] = await db.select().from(customers).where(and(eq(customers.businessId, businessId), eq(customers.phone, phone)));
+    return customer;
   }
 
-  async createClient(client: typeof clients.$inferInsert): Promise<Client> {
-    const [newClient] = await db.insert(clients).values(client).returning();
-    return newClient;
+  async createCustomer(customer: typeof customers.$inferInsert): Promise<Customer> {
+    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    return newCustomer;
   }
 
-  async getClients(businessId: string): Promise<Client[]> {
-    return await db.select().from(clients).where(eq(clients.businessId, businessId));
+  async getCustomers(businessId: string): Promise<Customer[]> {
+    return await db.select().from(customers).where(eq(customers.businessId, businessId));
   }
 
   async updateAppointmentStatus(id: string, status: string): Promise<Appointment> {
@@ -247,26 +247,32 @@ export class DatabaseStorage implements IStorage {
 
     const allAppts = await db.query.appointments.findMany({
       where: eq(appointments.businessId, businessId),
-      with: { service: true, client: true },
+      with: { service: true, customer: true },
       limit: 10,
       orderBy: (appointments, { desc }) => [desc(appointments.startAt)],
     });
 
-    const completedAppts = await db.query.appointments.findMany({
-      where: and(eq(appointments.businessId, businessId), eq(appointments.status, "COMPLETED")),
+    const revenueAppts = await db.query.appointments.findMany({
+      where: and(
+        eq(appointments.businessId, businessId), 
+        or(
+          eq(appointments.status, "COMPLETED"),
+          eq(appointments.status, "CONFIRMED")
+        )
+      ),
       with: { service: true }
     });
 
     const noShows = await db.select({ count: sql<number>`count(*)` }).from(appointments).where(and(eq(appointments.businessId, businessId), eq(appointments.status, "NO_SHOW")));
-    const clientsCount = await db.select({ count: sql<number>`count(*)` }).from(clients).where(eq(clients.businessId, businessId));
+    const customersCount = await db.select({ count: sql<number>`count(*)` }).from(customers).where(eq(customers.businessId, businessId));
 
-    const revenue = completedAppts.reduce((sum, appt) => sum + Number(appt.service?.price || 0), 0);
+    const revenue = revenueAppts.reduce((sum, appt) => sum + Number(appt.service?.price || 0), 0);
 
     return {
       todayCount: todayAppts.length,
       revenue,
       noShows: Number(noShows[0]?.count || 0),
-      totalClients: Number(clientsCount[0]?.count || 0),
+      totalCustomers: Number(customersCount[0]?.count || 0),
       recentBookings: allAppts
     };
   }
@@ -279,10 +285,12 @@ async function seed() {
   if (Number(usersCount[0].count) === 0) {
     const hashedPassword = await hashPassword("password");
     await storage.createUser({
+      id: crypto.randomUUID(),
       email: "demo@example.com",
       password: hashedPassword,
       name: "Demo User",
       role: "OWNER",
+      businessId: null,
       businessName: "Demo Business"
     });
     

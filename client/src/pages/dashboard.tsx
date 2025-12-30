@@ -27,7 +27,16 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useStats();
+  const { data: stats, isLoading } = useStats() as { 
+    data: { 
+      todayCount: number, 
+      revenue: number, 
+      noShows: number, 
+      totalCustomers: number, 
+      recentBookings: any[] 
+    }, 
+    isLoading: boolean 
+  };
   const [, setLocation] = useLocation();
 
   if (isLoading) {
@@ -97,8 +106,8 @@ export default function Dashboard() {
           color="rose"
         />
         <StatCard 
-          title="Total Clients" 
-          value={stats?.totalClients || 0}
+          title="Total Customers" 
+          value={stats?.totalCustomers || 0}
           icon={Users}
           color="blue"
         />
@@ -119,14 +128,14 @@ export default function Dashboard() {
                   <div 
                     key={booking.id} 
                     className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 hover:bg-white hover-elevate active-elevate-2 transition-all cursor-pointer border border-transparent hover:border-slate-100"
-                    onClick={() => setLocation("/clients")}
+                    onClick={() => setLocation("/customers")}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm">
-                        {booking.client.name.slice(0, 2).toUpperCase()}
+                        {booking.customer.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">{booking.client.name}</p>
+                        <p className="font-medium text-slate-900">{booking.customer.name}</p>
                         <p className="text-sm text-slate-500">{booking.service.name}</p>
                       </div>
                     </div>

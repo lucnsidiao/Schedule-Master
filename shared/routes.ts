@@ -4,10 +4,10 @@ import {
   insertUserSchema, 
   insertWorkingDaySchema, 
   insertServiceSchema, 
-  insertClientSchema, 
+  insertCustomerSchema, 
   insertAppointmentSchema, 
   insertAbsenceSchema,
-  businesses, users, workingDays, services, clients, appointments, absences
+  businesses, users, workingDays, services, customers, appointments, absences
 } from './schema';
 
 export const errorSchemas = {
@@ -133,7 +133,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/appointments',
       responses: {
-        200: z.array(z.custom<typeof appointments.$inferSelect & { client: typeof clients.$inferSelect, service: typeof services.$inferSelect }>()),
+        200: z.array(z.custom<typeof appointments.$inferSelect & { customer: typeof customers.$inferSelect, service: typeof services.$inferSelect }>()),
       },
     },
     create: {
@@ -189,8 +189,8 @@ export const api = {
           todayCount: z.number(),
           revenue: z.number(),
           noShows: z.number(),
-          totalClients: z.number(),
-          recentBookings: z.array(z.custom<typeof appointments.$inferSelect & { client: typeof clients.$inferSelect, service: typeof services.$inferSelect }>()),
+          totalCustomers: z.number(),
+          recentBookings: z.array(z.custom<typeof appointments.$inferSelect & { customer: typeof customers.$inferSelect, service: typeof services.$inferSelect }>()),
         }),
       },
     },

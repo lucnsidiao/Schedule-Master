@@ -41,7 +41,7 @@ export const services = pgTable("services", {
   businessId: uuid("business_id").notNull().references(() => businesses.id),
 });
 
-export const clients = pgTable("clients", {
+export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
@@ -53,7 +53,7 @@ export const appointments = pgTable("appointments", {
   startAt: timestamp("start_at").notNull(),
   endAt: timestamp("end_at").notNull(),
   status: appointmentStatusEnum("status").default("CONFIRMED").notNull(),
-  clientId: uuid("client_id").references(() => clients.id),
+  customerId: uuid("customer_id").references(() => customers.id),
   serviceId: uuid("service_id").references(() => services.id),
   businessId: uuid("business_id").notNull().references(() => businesses.id),
 });
@@ -71,7 +71,7 @@ export const businessRelations = relations(businesses, ({ many }) => ({
   users: many(users),
   appointments: many(appointments),
   services: many(services),
-  clients: many(clients),
+  customers: many(customers),
   workingDays: many(workingDays),
   absences: many(absences),
 }));
@@ -84,13 +84,13 @@ export const userRelations = relations(users, ({ one }) => ({
 }));
 
 export const appointmentRelations = relations(appointments, ({ one }) => ({
-  client: one(clients, { fields: [appointments.clientId], references: [clients.id] }),
+  customer: one(customers, { fields: [appointments.customerId], references: [customers.id] }),
   service: one(services, { fields: [appointments.serviceId], references: [services.id] }),
   business: one(businesses, { fields: [appointments.businessId], references: [businesses.id] }),
 }));
 
-export const clientRelations = relations(clients, ({ one, many }) => ({
-  business: one(businesses, { fields: [clients.businessId], references: [businesses.id] }),
+export const customerRelations = relations(customers, ({ one, many }) => ({
+  business: one(businesses, { fields: [customers.businessId], references: [businesses.id] }),
   appointments: many(appointments),
 }));
 
@@ -104,7 +104,7 @@ export const insertBusinessSchema = createInsertSchema(businesses).omit({ id: tr
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertWorkingDaySchema = createInsertSchema(workingDays).omit({ id: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true });
-export const insertClientSchema = createInsertSchema(clients).omit({ id: true });
+export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true });
 export const insertAbsenceSchema = createInsertSchema(absences).omit({ id: true });
 
@@ -113,6 +113,6 @@ export type Business = typeof businesses.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type WorkingDay = typeof workingDays.$inferSelect;
 export type Service = typeof services.$inferSelect;
-export type Client = typeof clients.$inferSelect;
+export type Customer = typeof customers.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type Absence = typeof absences.$inferSelect;

@@ -32,8 +32,11 @@ export async function registerRoutes(
       
       const user = await storage.createUser({
         ...input,
+        id: crypto.randomUUID(),
         password: hashedPassword,
-      });
+        businessId: null,
+        businessName: input.businessName,
+      } as any);
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -152,19 +155,19 @@ export async function registerRoutes(
     res.json(absences);
   });
 
-  app.get("/api/clients", isAuthenticated, async (req, res) => {
+  app.get("/api/customers", isAuthenticated, async (req, res) => {
     const user = req.user as any;
-    const clientsList = await storage.getClients(user.businessId);
-    res.json(clientsList);
+    const customersList = await storage.getCustomers(user.businessId!);
+    res.json(customersList);
   });
 
-  app.post("/api/clients", isAuthenticated, async (req, res) => {
+  app.post("/api/customers", isAuthenticated, async (req, res) => {
     const user = req.user as any;
-    const client = await storage.createClient({
+    const customer = await storage.createCustomer({
       ...req.body,
-      businessId: user.businessId
+      businessId: user.businessId!
     });
-    res.status(201).json(client);
+    res.status(201).json(customer);
   });
 
   app.patch("/api/appointments/:id/status", isAuthenticated, async (req, res) => {
@@ -257,12 +260,14 @@ export async function registerRoutes(
   if (!existingUser) {
     const hashedPassword = await hashPassword("password");
     const user = await storage.createUser({
+      id: crypto.randomUUID(),
       email: "demo@example.com",
       password: hashedPassword,
       name: "Demo User",
       role: "OWNER",
+      businessId: null,
       businessName: "Demo Clinic",
-    });
+    } as any);
     
     if (user.businessId) {
         await storage.createService({ businessId: user.businessId, name: "Consultation", price: "50", duration: 30, active: true });
