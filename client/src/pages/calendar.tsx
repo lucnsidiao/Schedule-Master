@@ -123,8 +123,8 @@ export default function CalendarPage() {
                     <Input type="date" name="date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Time</Label>
-                    <Input type="time" name="time" required />
+                    <Label>Return Time</Label>
+                    <Input type="time" name="time" required defaultValue="17:00" />
                   </div>
                 </div>
                 <div className="space-y-2">
