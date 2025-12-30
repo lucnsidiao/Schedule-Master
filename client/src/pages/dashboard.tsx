@@ -1,6 +1,7 @@
 import { useStats } from "@/hooks/use-appointments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 import { 
   Users, 
   DollarSign, 
@@ -27,6 +28,7 @@ function cn(...inputs: ClassValue[]) {
 
 export default function Dashboard() {
   const { data: stats, isLoading } = useStats();
+  const [, setLocation] = useLocation();
 
   if (isLoading) {
     return <div className="flex h-96 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
@@ -80,7 +82,7 @@ export default function Dashboard() {
           value={stats?.todayCount || 0}
           icon={CalendarCheck}
           color="indigo"
-          onClick={() => console.log("Navigate to today's schedule")}
+          onClick={() => setLocation("/calendar")}
         />
         <StatCard 
           title="Total Revenue" 
@@ -117,7 +119,7 @@ export default function Dashboard() {
                   <div 
                     key={booking.id} 
                     className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 hover:bg-white hover-elevate active-elevate-2 transition-all cursor-pointer border border-transparent hover:border-slate-100"
-                    onClick={() => console.log('Booking clicked:', booking.id)}
+                    onClick={() => setLocation("/clients")}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm">

@@ -8,20 +8,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Plus, AlertOctagon, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, AlertOctagon, Calendar as CalendarIcon, Loader2, CheckCircle, XCircle, Clock as ClockIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [createOpen, setCreateOpen] = useState(false);
   const [absenceOpen, setAbsenceOpen] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState<any>(null);
   const { toast } = useToast();
 
   const { data: appointments, isLoading: isLoadingAppts } = useAppointments();
   const { data: services } = useServices();
   const createAppointment = useCreateAppointment();
   const createAbsence = useCreateAbsence();
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string, status: string }) => {
+      const res = await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      setSelectedAppt(null);
+      toast({ title: "Status updated" });
+    }
+  });
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -244,18 +259,91 @@ export default function CalendarPage() {
                     const height = durationMins * (96 / 60);
 
                     return (
-                      <div
-                        key={appt.id}
-                        className="absolute left-1 right-1 rounded-md bg-indigo-100 border border-indigo-200 p-2 text-xs hover:brightness-95 cursor-pointer shadow-sm transition-all"
-                        style={{ top: `${topOffset}px`, height: `${height}px` }}
-                      >
-                        <div className="font-semibold text-indigo-900 truncate">
-                          {appt.client.name}
-                        </div>
-                        <div className="text-indigo-700 truncate">
-                          {appt.service.name}
-                        </div>
-                      </div>
+                      <Dialog key={appt.id} open={selectedAppt?.id === appt.id} onOpenChange={(open) => !open && setSelectedAppt(null)}>
+                        <DialogTrigger asChild>
+                          <div
+                            className={clsx(
+                              "absolute left-1 right-1 rounded-md border p-2 text-xs hover:brightness-95 cursor-pointer shadow-sm transition-all",
+                              appt.status === "COMPLETED" ? "bg-emerald-100 border-emerald-200" :
+                              appt.status === "CANCELED" ? "bg-rose-100 border-rose-200" :
+                              appt.status === "NO_SHOW" ? "bg-amber-100 border-amber-200" :
+                              "bg-indigo-100 border-indigo-200"
+                            )}
+                            style={{ top: `${topOffset}px`, height: `${height}px` }}
+                            onClick={() => setSelectedAppt(appt)}
+                          >
+                            <div className="font-semibold text-slate-900 truncate">
+                              {appt.client.name}
+                            </div>
+                            <div className="text-slate-600 truncate">
+                              {appt.service.name}
+                            </div>
+                            <div className="mt-1 text-[10px] font-medium uppercase opacity-60">
+                              {appt.status}
+                            </div>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Appointment Details</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-slate-500">Client</Label>
+                                <p className="font-medium">{appt.client.name}</p>
+                                <p className="text-sm text-slate-500">{appt.client.phone}</p>
+                              </div>
+                              <div>
+                                <Label className="text-slate-500">Service</Label>
+                                <p className="font-medium">{appt.service.name}</p>
+                                <p className="text-sm text-slate-500">${appt.service.price} • {appt.service.duration}m</p>
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-slate-500">Time</Label>
+                              <p className="font-medium">{format(new Date(appt.startAt), "MMM d, h:mm a")} - {format(new Date(appt.endAt), "h:mm a")}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Update Status</Label>
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  className="justify-start border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                  onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "COMPLETED" })}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Completed
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  className="justify-start border-rose-200 text-rose-700 hover:bg-rose-50"
+                                  onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "CANCELED" })}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Canceled
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  className="justify-start border-amber-200 text-amber-700 hover:bg-amber-50"
+                                  onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "NO_SHOW" })}
+                                >
+                                  <AlertOctagon className="w-4 h-4 mr-2" />
+                                  No Show
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  className="justify-start"
+                                  onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "CONFIRMED" })}
+                                >
+                                  <ClockIcon className="w-4 h-4 mr-2" />
+                                  Confirmed
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     );
                   })}
                 </div>

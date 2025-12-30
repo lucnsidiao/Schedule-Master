@@ -35,6 +35,8 @@ export interface IStorage {
   // Clients
   getClientByPhone(businessId: string, phone: string): Promise<Client | undefined>;
   createClient(client: typeof clients.$inferInsert): Promise<Client>;
+  getClients(businessId: string): Promise<Client[]>;
+  updateAppointmentStatus(id: string, status: string): Promise<Appointment>;
 
   // Stats
   getStats(businessId: string): Promise<{ todayCount: number, revenue: number, noShows: number, recentBookings: (Appointment & { client: Client | null, service: Service | null })[] }>;
@@ -216,6 +218,18 @@ export class DatabaseStorage implements IStorage {
   async createClient(client: typeof clients.$inferInsert): Promise<Client> {
     const [newClient] = await db.insert(clients).values(client).returning();
     return newClient;
+  }
+
+  async getClients(businessId: string): Promise<Client[]> {
+    return await db.select().from(clients).where(eq(clients.businessId, businessId));
+  }
+
+  async updateAppointmentStatus(id: string, status: string): Promise<Appointment> {
+    const [appt] = await db.update(appointments)
+      .set({ status: status as any })
+      .where(eq(appointments.id, id))
+      .returning();
+    return appt;
   }
 
   async getStats(businessId: string): Promise<any> {

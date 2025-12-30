@@ -152,6 +152,27 @@ export async function registerRoutes(
     res.json(absences);
   });
 
+  app.get("/api/clients", isAuthenticated, async (req, res) => {
+    const user = req.user as any;
+    const clientsList = await storage.getClients(user.businessId);
+    res.json(clientsList);
+  });
+
+  app.post("/api/clients", isAuthenticated, async (req, res) => {
+    const user = req.user as any;
+    const client = await storage.createClient({
+      ...req.body,
+      businessId: user.businessId
+    });
+    res.status(201).json(client);
+  });
+
+  app.patch("/api/appointments/:id/status", isAuthenticated, async (req, res) => {
+    const { status } = req.body;
+    const appt = await storage.updateAppointmentStatus(req.params.id, status);
+    res.json(appt);
+  });
+
   app.post(api.absences.create.path, isAuthenticated, async (req, res) => {
     const user = req.user as any;
     const input = api.absences.create.input.parse(req.body);
