@@ -38,10 +38,10 @@ export default function Dashboard() {
   ];
 
   const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
-    <Card className="glass-card overflow-hidden relative">
-      <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}-500/10 rounded-full blur-2xl -mr-12 -mt-12`} />
+    <Card className="glass-card overflow-hidden relative hover-elevate active-elevate-2 cursor-pointer transition-all duration-200 group border-transparent hover:border-slate-200">
+      <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}-500/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-${color}-500/20 transition-colors`} />
       <CardContent className="p-6">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start relative z-10">
           <div>
             <p className="text-sm font-medium text-slate-500">{title}</p>
             <h3 className="text-2xl font-bold mt-2 text-slate-900">{value}</h3>
@@ -52,7 +52,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          <div className={`p-3 bg-${color}-50 text-${color}-600 rounded-xl`}>
+          <div className={`p-3 bg-${color}-50 text-${color}-600 rounded-xl group-hover:scale-110 transition-transform duration-200`}>
             <Icon className="w-5 h-5" />
           </div>
         </div>
@@ -109,7 +109,11 @@ export default function Dashboard() {
                 <div className="text-center py-8 text-slate-500">No bookings yet</div>
               ) : (
                 stats?.recentBookings.map((booking: any) => (
-                  <div key={booking.id} className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                  <div 
+                    key={booking.id} 
+                    className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 hover:bg-white hover-elevate active-elevate-2 transition-all cursor-pointer border border-transparent hover:border-slate-100"
+                    onClick={() => console.log('Booking clicked:', booking.id)}
+                  >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm">
                         {booking.client.name.slice(0, 2).toUpperCase()}
