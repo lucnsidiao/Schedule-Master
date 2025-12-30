@@ -18,6 +18,12 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from "recharts";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export default function Dashboard() {
   const { data: stats, isLoading } = useStats();
@@ -34,7 +40,7 @@ export default function Dashboard() {
 
   const StatCard = ({ title, value, icon: Icon, color, trend, onClick }: any) => (
     <Card 
-      className={clsx(
+      className={cn(
         "glass-card overflow-hidden relative transition-all duration-200 group border-transparent",
         onClick ? "hover-elevate active-elevate-2 cursor-pointer hover:border-slate-200" : "cursor-default"
       )}

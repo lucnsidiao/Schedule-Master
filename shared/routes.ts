@@ -189,6 +189,7 @@ export const api = {
           todayCount: z.number(),
           revenue: z.number(),
           noShows: z.number(),
+          totalClients: z.number(),
           recentBookings: z.array(z.custom<typeof appointments.$inferSelect & { client: typeof clients.$inferSelect, service: typeof services.$inferSelect }>()),
         }),
       },
