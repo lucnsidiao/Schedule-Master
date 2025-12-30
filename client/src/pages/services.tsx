@@ -1,3 +1,4 @@
+import { Service } from "@shared/schema";
 import { useServices, useCreateService, useDeleteService, useUpdateService } from "@/hooks/use-services";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ServicesPage() {
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingService, setEditingService] = useState<any>(null);
+  const [editingService, setEditingService] = useState<Service | null>(null);
   const { toast } = useToast();
 
   const { data: services, isLoading } = useServices();
@@ -110,9 +111,9 @@ export default function ServicesPage() {
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <CardTitle className="text-lg font-bold">{service.name}</CardTitle>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 hover:text-indigo-600"
                     onClick={() => {
                       setEditingService(service);
@@ -121,9 +122,9 @@ export default function ServicesPage() {
                   >
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 hover:text-red-600"
                     onClick={() => handleDelete(service.id)}
                   >

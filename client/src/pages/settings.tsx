@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Loader2, Save } from "lucide-react";
 import { useState, useEffect } from "react";
+import { WorkingDay } from "@shared/schema";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -18,7 +19,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   // Local state for working days form to handle inputs smoothly
-  const [daysState, setDaysState] = useState<any[]>([]);
+  const [daysState, setDaysState] = useState<WorkingDay[]>([]);
 
   useEffect(() => {
     if (workingDays) {
@@ -86,7 +87,7 @@ export default function SettingsPage() {
                 <Input name="whatsapp" defaultValue={business?.whatsapp || ""} placeholder="+1234567890" />
               </div>
             </div>
-            
+
             <div className="pt-4 border-t border-slate-100">
               <Label>API Key</Label>
               <div className="flex gap-2 mt-2">
@@ -118,25 +119,25 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {daysState.sort((a,b) => a.dayOfWeek - b.dayOfWeek).map((day, index) => (
+            {daysState.sort((a, b) => a.dayOfWeek - b.dayOfWeek).map((day, index) => (
               <div key={day.dayOfWeek} className="flex items-center justify-between p-3 rounded-lg bg-slate-50/50 border border-slate-100">
                 <div className="flex items-center gap-4 w-40">
-                  <Switch 
-                    checked={day.isOpen} 
+                  <Switch
+                    checked={day.isOpen}
                     onCheckedChange={(checked) => {
                       const newDays = [...daysState];
                       newDays[index].isOpen = checked;
                       setDaysState(newDays);
-                    }} 
+                    }}
                   />
                   <span className="font-medium text-slate-700">{DAYS[day.dayOfWeek]}</span>
                 </div>
-                
+
                 {day.isOpen ? (
                   <div className="flex items-center gap-2">
-                    <Input 
-                      type="time" 
-                      className="w-32 bg-white" 
+                    <Input
+                      type="time"
+                      className="w-32 bg-white"
                       value={day.startTime}
                       onChange={(e) => {
                         const newDays = [...daysState];
@@ -145,9 +146,9 @@ export default function SettingsPage() {
                       }}
                     />
                     <span className="text-slate-400">to</span>
-                    <Input 
-                      type="time" 
-                      className="w-32 bg-white" 
+                    <Input
+                      type="time"
+                      className="w-32 bg-white"
                       value={day.endTime}
                       onChange={(e) => {
                         const newDays = [...daysState];

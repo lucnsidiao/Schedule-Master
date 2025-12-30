@@ -27,16 +27,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useStats() as {
-    data: {
-      todayCount: number,
-      revenue: number,
-      noShows: number,
-      totalCustomers: number,
-      recentBookings: any[]
-    },
-    isLoading: boolean
-  };
+  const { data: stats, isLoading } = useStats();
   const [, setLocation] = useLocation();
 
   if (isLoading) {
@@ -45,9 +36,9 @@ export default function Dashboard() {
 
   // No mock data - using dynamic revenue or empty array if not available
   const chartData = stats?.recentBookings
-    .filter((b: any) => b.status === "COMPLETED" || b.status === "CONFIRMED")
+    .filter((b) => b.status === "COMPLETED" || b.status === "CONFIRMED")
     .slice(0, 7)
-    .map((b: any) => ({
+    .map((b) => ({
       name: format(new Date(b.startAt), "EEE"),
       revenue: Number(b.service?.price || 0)
     })) || [];

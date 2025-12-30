@@ -42,6 +42,7 @@ export function useCreateAppointment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.appointments.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.stats.get.path] });
+      queryClient.invalidateQueries({ queryKey: [api.customers.list.path] });
     },
   });
 }
@@ -86,6 +87,7 @@ export function useStats() {
     queryFn: async () => {
       const res = await fetch(api.stats.get.path);
       if (!res.ok) throw new Error("Failed to fetch stats");
+      // Use the Zod schema to parse and return typed data
       return api.stats.get.responses[200].parse(await res.json());
     },
   });

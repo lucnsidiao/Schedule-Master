@@ -21,7 +21,7 @@ export default function CustomersPage() {
   });
 
   const createCustomerMutation = useMutation({
-    mutationFn: async (customer: any) => {
+    mutationFn: async (customer: { name: string; phone: string }) => {
       const res = await apiRequest("POST", "/api/customers", customer);
       return res.json();
     },

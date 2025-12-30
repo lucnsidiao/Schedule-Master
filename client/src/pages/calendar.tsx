@@ -8,21 +8,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Plus, AlertOctagon, Calendar as CalendarIcon, Loader2, CheckCircle, XCircle, Clock as ClockIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, AlertOctagon, Calendar as CalendarIcon, Loader2, CheckCircle, XCircle, Clock as ClockIcon, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import clsx from "clsx";
+import { Customer } from "@shared/schema";
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [createOpen, setCreateOpen] = useState(false);
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [selectedAppt, setSelectedAppt] = useState<any>(null);
+
+  // Create Appointment State
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerComboOpen, setCustomerComboOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+
   const { toast } = useToast();
 
   const { data: appointments, isLoading: isLoadingAppts } = useAppointments();
   const { data: services } = useServices();
+  const { data: customers } = useQuery<Customer[]>({ queryKey: ["/api/customers"] });
+
   const createAppointment = useCreateAppointment();
   const createAbsence = useCreateAbsence();
 
@@ -46,18 +57,13 @@ export default function CalendarPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    // Quick and dirty date construction (in real app use a date picker)
+    // Date construction
     const dateStr = formData.get("date") as string;
     const timeStr = formData.get("time") as string;
 
-    // Round time to nearest 15 minutes for optimization
     const [hours, minutes] = timeStr.split(':').map(Number);
-    const roundedMinutes = Math.round(minutes / 15) * 15;
-    const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
-    const finalHours = roundedMinutes === 60 ? hours + 1 : hours;
-    const optimizedTime = `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
-
-    const startAt = new Date(`${dateStr}T${optimizedTime}`);
+    const startAt = new Date(dateStr);
+    startAt.setHours(hours, minutes, 0, 0);
 
     const serviceId = formData.get("serviceId") as string;
     const service = services?.find(s => s.id === serviceId);
@@ -66,14 +72,19 @@ export default function CalendarPage() {
     const endAt = addHours(startAt, service.duration / 60);
 
     try {
+      const customerName = selectedCustomer ? selectedCustomer.name : formData.get("customerName") as string;
+      const customerPhone = selectedCustomer ? selectedCustomer.phone : formData.get("customerPhone") as string;
+
       await createAppointment.mutateAsync({
         startAt: startAt,
         endAt: endAt,
         serviceId,
-        customerName: formData.get("customerName") as string,
-        customerPhone: formData.get("customerPhone") as string,
-      } as any);
+        customerName,
+        customerPhone,
+        customerId: selectedCustomer?.id, // Pass ID to link to existing
+      });
       setCreateOpen(false);
+      setSelectedCustomer(null); // Reset selection
       toast({ title: "Appointment created successfully" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Failed to create", description: error.message });
@@ -153,14 +164,17 @@ export default function CalendarPage() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <Dialog open={createOpen} onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open) setSelectedCustomer(null);
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25">
                 <Plus className="w-4 h-4 mr-2" />
                 New Appointment
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="overflow-visible">
               <DialogHeader>
                 <DialogTitle>New Appointment</DialogTitle>
               </DialogHeader>
@@ -188,14 +202,81 @@ export default function CalendarPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Customer Name</Label>
-                  <Input name="customerName" placeholder="Jane Doe" required />
+                  <Label>Customer</Label>
+                  <Popover open={customerComboOpen} onOpenChange={setCustomerComboOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={customerComboOpen}
+                        className="w-full justify-between"
+                      >
+                        {selectedCustomer ? selectedCustomer.name : "Select existing customer..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search customers..." onValueChange={setCustomerSearch} />
+                        <CommandList>
+                          <CommandEmpty>No customer found.</CommandEmpty>
+                          <CommandGroup>
+                            {customers?.map((customer) => (
+                              <CommandItem
+                                key={customer.id}
+                                value={customer.name} // Filter by name
+                                onSelect={() => {
+                                  setSelectedCustomer(customer);
+                                  setCustomerComboOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={clsx(
+                                    "mr-2 h-4 w-4",
+                                    selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span>{customer.name}</span>
+                                  <span className="text-xs text-slate-500">{customer.phone}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-slate-500">
+                    Select a customer above OR fill in details below for a new one.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Customer Phone</Label>
-                  <Input name="customerPhone" placeholder="+1234567890" required />
-                </div>
+
+                {!selectedCustomer && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Customer Name</Label>
+                      <Input name="customerName" placeholder="Jane Doe" required={!selectedCustomer} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Customer Phone</Label>
+                      <Input name="customerPhone" placeholder="+1234567890" required={!selectedCustomer} />
+                    </div>
+                  </>
+                )}
+
+                {selectedCustomer && (
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <p className="text-sm font-medium">{selectedCustomer.name}</p>
+                    <p className="text-sm text-slate-500">{selectedCustomer.phone}</p>
+                    <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs mt-1" onClick={() => setSelectedCustomer(null)}>
+                      Change / New Customer
+                    </Button>
+                  </div>
+                )}
+
                 <Button type="submit" className="w-full" disabled={createAppointment.isPending}>
                   {createAppointment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Booking
