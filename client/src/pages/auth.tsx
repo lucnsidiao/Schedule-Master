@@ -13,7 +13,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const login = useLogin();
   const register = useRegister();
 
@@ -32,7 +32,6 @@ export default function AuthPage() {
         await register.mutateAsync({
           name: data.name as string,
           email: data.email as string,
-          username: data.username as string,
           password: data.password as string,
           businessName: data.businessName as string,
         });
@@ -55,7 +54,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-col justify-center items-center bg-slate-900 text-white p-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-700 opacity-90" />
         <div className="absolute inset-0" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80')", backgroundSize: 'cover', mixBlendMode: 'overlay', opacity: 0.2 }} />
-        
+
         <div className="relative z-10 max-w-lg text-center space-y-6">
           <div className="w-20 h-20 bg-white/10 backdrop-blur-lg rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/20 shadow-2xl">
             <Scissors className="w-10 h-10 text-white" />
@@ -85,8 +84,8 @@ export default function AuthPage() {
                 {isLogin ? "Welcome back" : "Create an account"}
               </CardTitle>
               <CardDescription>
-                {isLogin 
-                  ? "Enter your credentials to access your dashboard" 
+                {isLogin
+                  ? "Enter your credentials to access your dashboard"
                   : "Enter your details to get started with StyleSync"}
               </CardDescription>
             </CardHeader>
@@ -94,7 +93,7 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <AnimatePresence mode="wait">
                   {!isLogin && (
-                    <motion.div 
+                    <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -115,20 +114,23 @@ export default function AuthPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" name="username" placeholder="johndoe" required className="glass-input" />
-                </div>
-                
+
+
+                {isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input id="username" name="username" placeholder="johndoe" required className="glass-input" />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input id="password" name="password" type="password" required className="glass-input" />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all duration-200" 
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all duration-200"
                   disabled={isPending}
                 >
                   {isPending ? (
@@ -137,7 +139,7 @@ export default function AuthPage() {
                   {isLogin ? "Sign In" : "Create Account"}
                 </Button>
               </form>
-              
+
               <div className="mt-6 text-center">
                 <button
                   type="button"

@@ -167,6 +167,38 @@ export const api = {
       },
     },
   },
+  customers: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/customers',
+      responses: {
+        200: z.array(z.custom<typeof customers.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/customers',
+      input: insertCustomerSchema.omit({ businessId: true }),
+      responses: {
+        201: z.custom<typeof customers.$inferSelect>(),
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/customers/:id',
+      input: insertCustomerSchema.omit({ businessId: true }).partial(),
+      responses: {
+        200: z.custom<typeof customers.$inferSelect>(),
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/customers/:id',
+      responses: {
+        204: z.void(),
+      },
+    },
+  },
   slots: {
     list: {
       method: 'GET' as const,

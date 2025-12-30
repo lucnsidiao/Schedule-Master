@@ -29,7 +29,7 @@ export async function registerRoutes(
 
       const input = api.auth.register.input.parse(req.body);
       const hashedPassword = await hashPassword(input.password);
-      
+
       const user = await storage.createUser({
         ...input,
         id: crypto.randomUUID(),
@@ -155,19 +155,31 @@ export async function registerRoutes(
     res.json(absences);
   });
 
-  app.get("/api/customers", isAuthenticated, async (req, res) => {
+  app.get(api.customers.list.path, isAuthenticated, async (req, res) => {
     const user = req.user as any;
     const customersList = await storage.getCustomers(user.businessId!);
     res.json(customersList);
   });
 
-  app.post("/api/customers", isAuthenticated, async (req, res) => {
+  app.post(api.customers.create.path, isAuthenticated, async (req, res) => {
     const user = req.user as any;
+    const input = api.customers.create.input.parse(req.body);
     const customer = await storage.createCustomer({
-      ...req.body,
+      ...input,
       businessId: user.businessId!
     });
     res.status(201).json(customer);
+  });
+
+  app.patch(api.customers.update.path, isAuthenticated, async (req, res) => {
+    const input = api.customers.update.input.parse(req.body);
+    const customer = await storage.updateCustomer(req.params.id, input);
+    res.json(customer);
+  });
+
+  app.delete(api.customers.delete.path, isAuthenticated, async (req, res) => {
+    await storage.deleteCustomer(req.params.id);
+    res.status(204).send();
   });
 
   app.patch("/api/appointments/:id/status", isAuthenticated, async (req, res) => {
@@ -187,7 +199,7 @@ export async function registerRoutes(
   app.get(api.slots.list.path, isAuthenticated, async (req, res) => {
     const user = req.user as any;
     const { date, serviceId } = api.slots.list.input.parse(req.query);
-    
+
     // Fetch necessary data
     const workingDays = await storage.getWorkingDays(user.businessId);
     const appointments = await storage.getAppointments(user.businessId);
@@ -210,10 +222,10 @@ export async function registerRoutes(
     const slots: string[] = [];
     const [startHour, startMin] = workingDay.startTime.split(":").map(Number);
     const [endHour, endMin] = workingDay.endTime.split(":").map(Number);
-    
+
     let current = new Date(targetDate);
     current.setHours(startHour, startMin, 0, 0);
-    
+
     const end = new Date(targetDate);
     end.setHours(endHour, endMin, 0, 0);
 
@@ -222,14 +234,14 @@ export async function registerRoutes(
     while (current.getTime() + durationMs <= end.getTime()) {
       const slotStart = new Date(current);
       const slotEnd = new Date(current.getTime() + durationMs);
-      
+
       // Check overlaps
-      const isAbsent = absences.some(a => 
+      const isAbsent = absences.some(a =>
         (a.startDate <= slotStart && (a.endDate ? a.endDate >= slotStart : false)) ||
         (a.startDate <= slotEnd && (a.endDate ? a.endDate >= slotEnd : false))
       );
 
-      const isBooked = appointments.some(a => 
+      const isBooked = appointments.some(a =>
         a.status === "CONFIRMED" && (
           (a.startAt < slotEnd && a.endAt > slotStart)
         )
@@ -268,12 +280,12 @@ export async function registerRoutes(
       businessId: null,
       businessName: "Demo Clinic",
     } as any);
-    
+
     if (user.businessId) {
-        await storage.createService({ businessId: user.businessId, name: "Consultation", price: "50", duration: 30, active: true });
-        await storage.createService({ businessId: user.businessId, name: "Therapy", price: "100", duration: 60, active: true });
+      await storage.createService({ businessId: user.businessId, name: "Consultation", price: "50", duration: 30, active: true });
+      await storage.createService({ businessId: user.businessId, name: "Therapy", price: "100", duration: 60, active: true });
     }
   }
-  
+
   return httpServer;
 }
