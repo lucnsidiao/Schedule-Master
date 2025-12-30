@@ -1,5 +1,5 @@
-import { users, businesses, services, workingDays, appointments, clients, absences, type InsertUser } from "@shared/schema";
-import { type User, type Business, type Service, type WorkingDay, type Appointment, type Client, type Absence } from "@shared/schema";
+import { users, businesses, services, workingDays, appointments, clients, absences } from "@shared/schema";
+import { type User, type Business, type Service, type WorkingDay, type Appointment, type Client, type Absence, type User as InsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, or, sql } from "drizzle-orm";
 import { hashPassword } from "./auth";

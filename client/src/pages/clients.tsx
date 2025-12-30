@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Client, InsertClient } from "@shared/schema";
+import { Client, type Client as InsertClient } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,10 +39,11 @@ export default function ClientsPage() {
   const handleCreateClient = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    createClientMutation.mutate({
+    const data = {
       name: formData.get("name") as string,
       phone: formData.get("phone") as string,
-    } as any);
+    };
+    createClientMutation.mutate(data as any);
   };
 
   return (
