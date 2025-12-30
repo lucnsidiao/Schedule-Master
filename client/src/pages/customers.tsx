@@ -53,6 +53,13 @@ export default function CustomersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Customer deleted successfully" });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete customer",
+        description: error.message,
+        variant: "destructive"
+      });
+    },
   });
 
   const filteredCustomers = customers?.filter(c =>
