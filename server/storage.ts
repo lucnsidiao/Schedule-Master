@@ -52,8 +52,8 @@ export interface IStorage {
   >;
   createAppointment(
     appointment: typeof appointments.$inferInsert & {
-      costumerName: string;
-      costumerPhone: string;
+      customerName: string;
+      customerPhone: string;
     },
   ): Promise<Appointment>;
 
@@ -228,8 +228,8 @@ export class DatabaseStorage implements IStorage {
 
   async createAppointment(
     data: typeof appointments.$inferInsert & {
-      costumerName: string;
-      costumerPhone: string;
+      customerName: string;
+      customerPhone: string;
     },
   ): Promise<Appointment> {
     return await db.transaction(async (tx) => {
@@ -274,7 +274,7 @@ export class DatabaseStorage implements IStorage {
         let customer = await tx.query.customers.findFirst({
           where: and(
             eq(customers.businessId, data.businessId),
-            eq(customers.phone, data.costumerPhone),
+            eq(customers.phone, data.customerPhone),
           ),
         });
 
@@ -282,8 +282,8 @@ export class DatabaseStorage implements IStorage {
           [customer] = await tx
             .insert(customers)
             .values({
-              name: data.costumerName,
-              phone: data.costumerPhone,
+              name: data.customerName,
+              phone: data.customerPhone,
               businessId: data.businessId,
             })
             .returning();

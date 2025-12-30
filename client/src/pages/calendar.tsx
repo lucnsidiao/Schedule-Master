@@ -45,11 +45,11 @@ export default function CalendarPage() {
   const handleCreateAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     // Quick and dirty date construction (in real app use a date picker)
     const dateStr = formData.get("date") as string;
     const timeStr = formData.get("time") as string;
-    
+
     // Round time to nearest 15 minutes for optimization
     const [hours, minutes] = timeStr.split(':').map(Number);
     const roundedMinutes = Math.round(minutes / 15) * 15;
@@ -58,7 +58,7 @@ export default function CalendarPage() {
     const optimizedTime = `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
 
     const startAt = new Date(`${dateStr}T${optimizedTime}`);
-    
+
     const serviceId = formData.get("serviceId") as string;
     const service = services?.find(s => s.id === serviceId);
     if (!service) return;
@@ -70,8 +70,8 @@ export default function CalendarPage() {
         startAt: startAt,
         endAt: endAt,
         serviceId,
-        clientName: formData.get("clientName") as string,
-        clientPhone: formData.get("clientPhone") as string,
+        customerName: formData.get("customerName") as string,
+        customerPhone: formData.get("customerPhone") as string,
       } as any);
       setCreateOpen(false);
       toast({ title: "Appointment created successfully" });
@@ -85,7 +85,7 @@ export default function CalendarPage() {
     const formData = new FormData(e.currentTarget);
     const dateStr = formData.get("date") as string;
     const timeStr = formData.get("time") as string;
-    
+
     try {
       const startDate = new Date(`${dateStr}T${timeStr || '00:00'}`);
       await createAbsence.mutateAsync({
@@ -106,7 +106,7 @@ export default function CalendarPage() {
           <h2 className="text-3xl font-bold font-display text-slate-900">Calendar</h2>
           <p className="text-slate-500">Manage bookings and schedule.</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-white rounded-lg border border-slate-200 p-1 shadow-sm">
             <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
@@ -119,7 +119,7 @@ export default function CalendarPage() {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          
+
           <Dialog open={absenceOpen} onOpenChange={setAbsenceOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
@@ -189,12 +189,12 @@ export default function CalendarPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Client Name</Label>
-                  <Input name="clientName" placeholder="Jane Doe" required />
+                  <Label>Customer Name</Label>
+                  <Input name="customerName" placeholder="Jane Doe" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Client Phone</Label>
-                  <Input name="clientPhone" placeholder="+1234567890" required />
+                  <Label>Customer Phone</Label>
+                  <Input name="customerPhone" placeholder="+1234567890" required />
                 </div>
                 <Button type="submit" className="w-full" disabled={createAppointment.isPending}>
                   {createAppointment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -253,7 +253,7 @@ export default function CalendarPage() {
                     const startHour = start.getHours();
                     const startMin = start.getMinutes();
                     const durationMins = (end.getTime() - start.getTime()) / 60000;
-                    
+
                     // Calculate position relative to 8 AM start
                     const topOffset = ((startHour - 8) * 60 + startMin) * (96 / 60); // 96px per hour (h-24)
                     const height = durationMins * (96 / 60);
@@ -265,15 +265,21 @@ export default function CalendarPage() {
                             className={clsx(
                               "absolute left-1 right-1 rounded-md border p-2 text-xs hover:brightness-95 cursor-pointer shadow-sm transition-all",
                               appt.status === "COMPLETED" ? "bg-emerald-100 border-emerald-200" :
-                              appt.status === "CANCELED" ? "bg-rose-100 border-rose-200" :
-                              appt.status === "NO_SHOW" ? "bg-amber-100 border-amber-200" :
-                              "bg-indigo-100 border-indigo-200"
+                                appt.status === "CANCELED" ? "bg-rose-100 border-rose-200" :
+                                  appt.status === "NO_SHOW" ? "bg-amber-100 border-amber-200" :
+                                    "bg-indigo-100 border-indigo-200"
                             )}
                             style={{ top: `${topOffset}px`, height: `${height}px` }}
                             onClick={() => setSelectedAppt(appt)}
                           >
-                            <div className="font-semibold text-slate-900 truncate">
-                              {appt.customer?.name}
+                            <div className="flex items-center gap-1">
+                              <div className="font-semibold text-slate-900 truncate flex-1">
+                                {appt.customer?.name}
+                              </div>
+                              {appt.status === "COMPLETED" && <CheckCircle className="w-3 h-3 text-emerald-600" />}
+                              {appt.status === "CONFIRMED" && <ClockIcon className="w-3 h-3 text-indigo-600" />}
+                              {appt.status === "NO_SHOW" && <AlertOctagon className="w-3 h-3 text-amber-600" />}
+                              {appt.status === "CANCELED" && <XCircle className="w-3 h-3 text-rose-600" />}
                             </div>
                             <div className="text-slate-600 truncate">
                               {appt.service?.name}
@@ -307,32 +313,32 @@ export default function CalendarPage() {
                             <div className="space-y-2">
                               <Label>Update Status</Label>
                               <div className="grid grid-cols-2 gap-2">
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="justify-start border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                                   onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "COMPLETED" })}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Completed
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="justify-start border-rose-200 text-rose-700 hover:bg-rose-50"
                                   onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "CANCELED" })}
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
                                   Canceled
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="justify-start border-amber-200 text-amber-700 hover:bg-amber-50"
                                   onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "NO_SHOW" })}
                                 >
                                   <AlertOctagon className="w-4 h-4 mr-2" />
                                   No Show
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="justify-start"
                                   onClick={() => updateStatusMutation.mutate({ id: appt.id, status: "CONFIRMED" })}
                                 >

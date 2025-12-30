@@ -1,14 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useLogout } from "@/hooks/use-auth";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Settings, 
-  Scissors, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Settings,
+  Scissors,
+  LogOut,
   Menu,
   X,
-  Users
+  Users,
+  BarChart3
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -28,15 +29,16 @@ export function Layout({ children }: LayoutProps) {
     { label: "Dashboard", icon: LayoutDashboard, href: "/" },
     { label: "Calendar", icon: Calendar, href: "/calendar" },
     { label: "Customers", icon: Users, href: "/customers" },
-    { label: "Services", icon: Scissors, href: "/services" },
+    { label: "Reports", icon: BarChart3, href: "/reports" },
     { label: "Settings", icon: Settings, href: "/settings" },
+    { label: "Services", icon: Scissors, href: "/services" },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -56,7 +58,7 @@ export function Layout({ children }: LayoutProps) {
               StyleSync
             </h1>
           </div>
-          <button 
+          <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
           >
@@ -92,8 +94,8 @@ export function Layout({ children }: LayoutProps) {
                 <p className="text-xs text-slate-500 truncate">{user?.email}</p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
               onClick={() => logout()}
             >
@@ -117,7 +119,7 @@ export function Layout({ children }: LayoutProps) {
             <Menu className="w-6 h-6" />
           </Button>
         </div>
-        
+
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
           {children}
         </div>

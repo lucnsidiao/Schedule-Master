@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { 
-  insertBusinessSchema, 
-  insertUserSchema, 
-  insertWorkingDaySchema, 
-  insertServiceSchema, 
-  insertCustomerSchema, 
-  insertAppointmentSchema, 
+import {
+  insertBusinessSchema,
+  insertUserSchema,
+  insertWorkingDaySchema,
+  insertServiceSchema,
+  insertCustomerSchema,
+  insertAppointmentSchema,
   insertAbsenceSchema,
   businesses, users, workingDays, services, customers, appointments, absences
 } from './schema';
@@ -140,8 +140,8 @@ export const api = {
       method: 'POST' as const,
       path: '/api/appointments',
       input: insertAppointmentSchema.omit({ businessId: true, status: true }).extend({
-        clientName: z.string(),
-        clientPhone: z.string(),
+        customerName: z.string(),
+        customerPhone: z.string(),
       }),
       responses: {
         201: z.custom<typeof appointments.$inferSelect>(),

@@ -2,22 +2,22 @@ import { useStats } from "@/hooks/use-appointments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
-import { 
-  Users, 
-  DollarSign, 
-  CalendarCheck, 
+import {
+  Users,
+  DollarSign,
+  CalendarCheck,
   AlertCircle,
   TrendingUp,
   Clock
 } from "lucide-react";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from "recharts";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -27,15 +27,15 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useStats() as { 
-    data: { 
-      todayCount: number, 
-      revenue: number, 
-      noShows: number, 
-      totalCustomers: number, 
-      recentBookings: any[] 
-    }, 
-    isLoading: boolean 
+  const { data: stats, isLoading } = useStats() as {
+    data: {
+      todayCount: number,
+      revenue: number,
+      noShows: number,
+      totalCustomers: number,
+      recentBookings: any[]
+    },
+    isLoading: boolean
   };
   const [, setLocation] = useLocation();
 
@@ -44,13 +44,16 @@ export default function Dashboard() {
   }
 
   // No mock data - using dynamic revenue or empty array if not available
-  const chartData = stats?.recentBookings.slice(0, 7).map((b: any) => ({
-    name: format(new Date(b.startAt), "EEE"),
-    revenue: Number(b.service?.price || 0)
-  })) || [];
+  const chartData = stats?.recentBookings
+    .filter((b: any) => b.status === "COMPLETED" || b.status === "CONFIRMED")
+    .slice(0, 7)
+    .map((b: any) => ({
+      name: format(new Date(b.startAt), "EEE"),
+      revenue: Number(b.service?.price || 0)
+    })) || [];
 
   const StatCard = ({ title, value, icon: Icon, color, trend, onClick }: any) => (
-    <Card 
+    <Card
       className={cn(
         "glass-card overflow-hidden relative transition-all duration-200 group border-transparent",
         onClick ? "hover-elevate active-elevate-2 cursor-pointer hover:border-slate-200" : "cursor-default"
@@ -86,27 +89,27 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Today's Appointments" 
+        <StatCard
+          title="Today's Appointments"
           value={stats?.todayCount || 0}
           icon={CalendarCheck}
           color="indigo"
           onClick={() => setLocation("/calendar")}
         />
-        <StatCard 
-          title="Total Revenue" 
+        <StatCard
+          title="Total Revenue"
           value={`$${stats?.revenue || 0}`}
           icon={DollarSign}
           color="emerald"
         />
-        <StatCard 
-          title="No-Shows" 
+        <StatCard
+          title="No-Shows"
           value={stats?.noShows || 0}
           icon={AlertCircle}
           color="rose"
         />
-        <StatCard 
-          title="Total Customers" 
+        <StatCard
+          title="Total Customers"
           value={stats?.totalCustomers || 0}
           icon={Users}
           color="blue"
@@ -125,8 +128,8 @@ export default function Dashboard() {
                 <div className="text-center py-8 text-slate-500">No bookings yet</div>
               ) : (
                 stats?.recentBookings.map((booking: any) => (
-                  <div 
-                    key={booking.id} 
+                  <div
+                    key={booking.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 hover:bg-white hover-elevate active-elevate-2 transition-all cursor-pointer border border-transparent hover:border-slate-100"
                     onClick={() => setLocation("/customers")}
                   >
@@ -165,21 +168,21 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#64748b" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
+                  <XAxis
+                    dataKey="name"
+                    stroke="#64748b"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
                   />
-                  <YAxis 
-                    stroke="#64748b" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickFormatter={(value) => `$${value}`} 
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `$${value}`}
                   />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     cursor={{ fill: '#f1f5f9' }}
                   />

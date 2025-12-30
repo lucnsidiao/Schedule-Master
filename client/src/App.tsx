@@ -13,6 +13,7 @@ import CalendarPage from "@/pages/calendar";
 import CustomersPage from "@/pages/customers";
 import ServicesPage from "@/pages/services";
 import SettingsPage from "@/pages/settings";
+import ReportsPage from "@/pages/reports";
 import { Layout } from "@/components/layout";
 
 // Protected Route Wrapper
@@ -42,7 +43,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      
+
       <Route path="/">
         <ProtectedRoute component={Dashboard} />
       </Route>
@@ -57,6 +58,9 @@ function Router() {
       </Route>
       <Route path="/settings">
         <ProtectedRoute component={SettingsPage} />
+      </Route>
+      <Route path="/reports">
+        <ProtectedRoute component={ReportsPage} />
       </Route>
 
       <Route component={NotFound} />
